@@ -54,7 +54,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ username }) => {
                     },
                 ]}
             >
-                <BlurView intensity={BLUR_INTENSITY} tint="light" style={styles.blurCard}>
+                <BlurView intensity={BLUR_INTENSITY} tint="dark" style={styles.blurCard}>
                     <Text style={styles.emoji}>🎉</Text>
                     <Text style={styles.title}>Welcome!</Text>
                     <Text style={styles.username}>{username}</Text>
@@ -65,9 +65,9 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ username }) => {
                         onPress={handleGetStarted}
                         activeOpacity={0.8}
                     >
-                        <BlurView intensity={15} tint="light" style={styles.buttonBlur}>
+                        <View style={styles.buttonBlur}>
                             <Text style={styles.primaryButtonText}>Get Started</Text>
-                        </BlurView>
+                        </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -137,8 +137,9 @@ const styles = StyleSheet.create({
         paddingVertical: SPACING.md,
         paddingHorizontal: SPACING.lg,
         alignItems: 'center',
-        backgroundColor: 'rgba(249, 115, 22, 0.2)',
+        backgroundColor: COLORS.accent,
         overflow: 'hidden',
+        borderRadius: BORDER_RADIUS.md,
     },
     primaryButtonText: {
         ...TYPOGRAPHY.body,

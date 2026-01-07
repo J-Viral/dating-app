@@ -136,7 +136,7 @@ export const AuthContainer: React.FC = () => {
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.cardContainer}>
-                    <BlurView intensity={BLUR_INTENSITY} tint="light" style={styles.blurCard}>
+                    <BlurView intensity={BLUR_INTENSITY} tint="dark" style={styles.blurCard}>
                         {/* App Logo/Title */}
                         <Text style={styles.appName}>DesiDates</Text>
                         <Text style={styles.tagline}>Find Your Perfect Match</Text>
@@ -199,7 +199,7 @@ export const AuthContainer: React.FC = () => {
                             disabled={loading}
                             activeOpacity={0.8}
                         >
-                            <BlurView intensity={15} tint="light" style={styles.submitButtonBlur}>
+                            <View style={styles.submitButtonBlur}>
                                 {loading ? (
                                     <ActivityIndicator color={COLORS.glassText} />
                                 ) : (
@@ -207,7 +207,7 @@ export const AuthContainer: React.FC = () => {
                                         {mode === 'login' ? 'Login' : 'Create Account'}
                                     </Text>
                                 )}
-                            </BlurView>
+                            </View>
                         </TouchableOpacity>
                     </BlurView>
                 </View>
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
         borderRadius: BORDER_RADIUS.sm,
     },
     toggleButtonActive: {
-        backgroundColor: 'rgba(249, 115, 22, 0.3)',
+        backgroundColor: COLORS.accentLight,
     },
     toggleText: {
         ...TYPOGRAPHY.body,
@@ -288,8 +288,9 @@ const styles = StyleSheet.create({
         paddingVertical: SPACING.md,
         paddingHorizontal: SPACING.lg,
         alignItems: 'center',
-        backgroundColor: 'rgba(249, 115, 22, 0.2)',
+        backgroundColor: COLORS.accent,
         overflow: 'hidden',
+        borderRadius: BORDER_RADIUS.md,
     },
     submitButtonText: {
         ...TYPOGRAPHY.body,

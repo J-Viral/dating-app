@@ -1,7 +1,6 @@
 // Main App Component - Root of DesiDates with auth state management
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, StatusBar } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AuthContainer } from './src/components/AuthContainer';
 import { WelcomeView } from './src/components/WelcomeView';
 import { supabase, SupabaseSession } from './src/config/supabase';
@@ -34,15 +33,10 @@ export default function App() {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.backgroundPrimary} />
 
-            {/* Vibrant Gradient Background: Deep Purple to Sunset Orange */}
-            <LinearGradient
-                colors={[COLORS.gradientStart, COLORS.gradientMiddle, COLORS.gradientEnd]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradient}
-            >
+            {/* Dark Navy Background - AuthKit inspired */}
+            <View style={styles.darkBackground}>
                 {/* Conditional Rendering based on session state */}
                 {!loading && (
                     <>
@@ -53,7 +47,7 @@ export default function App() {
                         )}
                     </>
                 )}
-            </LinearGradient>
+            </View>
         </View>
     );
 }
@@ -61,8 +55,10 @@ export default function App() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: COLORS.backgroundPrimary,
     },
-    gradient: {
+    darkBackground: {
         flex: 1,
+        backgroundColor: COLORS.backgroundPrimary,
     },
 });

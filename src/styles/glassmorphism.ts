@@ -1,21 +1,21 @@
-// Glassmorphism style utilities for React Native
+// Glassmorphism style utilities for React Native - Dark Theme
 import { StyleSheet } from 'react-native';
 import { COLORS, SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 export const glassStyles = StyleSheet.create({
-    // Glass card container
+    // Glass card container - dark theme
     glassCard: {
         backgroundColor: COLORS.glassBackground,
         borderRadius: BORDER_RADIUS.lg,
         borderWidth: 1,
         borderColor: COLORS.glassBorder,
         padding: SPACING.lg,
-        ...SHADOWS.glow,
+        ...SHADOWS.medium,
     },
 
-    // Glass input field
+    // Glass input field - dark theme
     glassInput: {
-        backgroundColor: COLORS.glassBackground,
+        backgroundColor: 'rgba(17, 24, 39, 0.8)', // Darker input background
         borderRadius: BORDER_RADIUS.md,
         borderWidth: 1,
         borderColor: COLORS.glassBorder,
@@ -23,7 +23,7 @@ export const glassStyles = StyleSheet.create({
         paddingVertical: SPACING.md,
         fontSize: 16,
         color: COLORS.glassText,
-        ...SHADOWS.soft,
+        ...SHADOWS.subtle,
     },
 
     // Glass button
@@ -36,13 +36,14 @@ export const glassStyles = StyleSheet.create({
         paddingHorizontal: SPACING.lg,
         alignItems: 'center',
         justifyContent: 'center',
-        ...SHADOWS.glow,
+        ...SHADOWS.medium,
     },
 
-    // Glass button with accent
+    // Glass button with accent - blue theme
     glassButtonAccent: {
-        backgroundColor: 'rgba(249, 115, 22, 0.2)', // Sunset Orange with transparency
+        backgroundColor: COLORS.accent,
         borderColor: COLORS.accent,
+        ...SHADOWS.blue,
     },
 
     // Text styles
@@ -54,4 +55,4 @@ export const glassStyles = StyleSheet.create({
 });
 
 // Blur intensity constant
-export const BLUR_INTENSITY = 10;
+export const BLUR_INTENSITY = 20; // Increased for darker theme

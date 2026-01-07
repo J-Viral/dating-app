@@ -21,7 +21,7 @@ export const GlassInput: React.FC<GlassInputProps> = ({
 }) => {
     return (
         <View style={styles.container}>
-            <BlurView intensity={BLUR_INTENSITY} tint="light" style={styles.blurContainer}>
+            <BlurView intensity={BLUR_INTENSITY} tint="dark" style={styles.blurContainer}>
                 <TextInput
                     style={styles.input}
                     placeholder={placeholder}
