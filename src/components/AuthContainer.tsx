@@ -138,11 +138,25 @@ export const AuthContainer: React.FC = () => {
   const handleGoogleLogin = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await signInWithGoogle({
+      const { data } = await signInWithGoogle({
         variables: {
           redirectTo: Linking.createURL("google-auth"),
         },
       });
+
+      if (data?.SignInWithGoogle?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.SignInWithGoogle.url,
+          Linking.createURL("google-auth")
+        );
+
+        if (result.type === 'success' && result.url) {
+          // The redirect will be handled by the onAuthStateChange listener in App.tsx
+          // but we can also handle the session here if needed.
+        }
+      } else {
+        Alert.alert("Error", "Could not get authentication URL");
+      }
     } catch (error: any) {
       Alert.alert("Google Auth Error", error.message);
     }
