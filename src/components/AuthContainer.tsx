@@ -13,116 +13,126 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { useMutation } from '@apollo/client';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Linking from 'expo-linking';
+
 import { GlassInput } from './GlassInput';
-import { supabase } from '../config/supabase';
+import {
+    SIGN_IN_MUTATION,
+    SIGN_UP_MUTATION,
+    FORGOT_PASSWORD_MUTATION,
+    SIGN_IN_WITH_GOOGLE_MUTATION
+} from '../graphql/mutations';
 import { AuthFormData, AuthMode } from '../types/auth';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { BLUR_INTENSITY } from '../styles/glassmorphism';
 
+WebBrowser.maybeCompleteAuthSession();
+
 export const AuthContainer: React.FC = () => {
     const [mode, setMode] = useState<AuthMode>('login');
+    const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
     const [formData, setFormData] = useState<AuthFormData>({
         email: '',
         password: '',
         username: '',
     });
-    const [loading, setLoading] = useState(false);
+
+    // GraphQL Mutations
+    const [signIn, { loading: loginLoading }] = useMutation(SIGN_IN_MUTATION);
+    const [signUp, { loading: signupLoading }] = useMutation(SIGN_UP_MUTATION);
+    const [forgotPassword, { loading: forgotLoading }] = useMutation(FORGOT_PASSWORD_MUTATION);
+    const [signInWithGoogle, { loading: googleLoading }] = useMutation(SIGN_IN_WITH_GOOGLE_MUTATION);
+
+    const loading = loginLoading || signupLoading || forgotLoading || googleLoading;
 
     const handleToggleMode = async () => {
         await Haptics.selectionAsync();
-        setMode(mode === 'login' ? 'signup' : 'login');
-        // Clear form when switching
+        if (forgotPasswordMode) {
+            setForgotPasswordMode(false);
+        } else {
+            setMode(mode === 'login' ? 'signup' : 'login');
+        }
         setFormData({ email: '', password: '', username: '' });
     };
 
     const validateForm = (): boolean => {
-        if (!formData.email || !formData.password) {
-            Alert.alert('Error', 'Please fill in all fields');
+        if (!formData.email) {
+            Alert.alert('Error', 'Please enter your email');
             return false;
         }
 
-        if (mode === 'signup' && !formData.username) {
-            Alert.alert('Error', 'Please enter a username');
-            return false;
+        if (!forgotPasswordMode) {
+            if (!formData.password) {
+                Alert.alert('Error', 'Please enter your password');
+                return false;
+            }
+
+            if (mode === 'signup' && !formData.username) {
+                Alert.alert('Error', 'Please enter a username');
+                return false;
+            }
+
+            if (formData.password.length < 6) {
+                Alert.alert('Error', 'Password must be at least 6 characters');
+                return false;
+            }
         }
 
-        // Basic email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
             Alert.alert('Error', 'Please enter a valid email address');
             return false;
         }
 
-        // Password length check
-        if (formData.password.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters');
-            return false;
-        }
-
         return true;
     };
 
-    const handleSignUp = async () => {
+    const handleAuth = async () => {
         if (!validateForm()) return;
-
-        setLoading(true);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         try {
-            const { data, error } = await supabase.auth.signUp({
-                email: formData.email,
-                password: formData.password,
-                options: {
-                    data: {
-                        username: formData.username,
-                    },
-                },
-            });
-
-            if (error) throw error;
-
+            if (forgotPasswordMode) {
+                await forgotPassword({
+                    variables: {
+                        email: formData.email,
+                        redirectTo: Linking.createURL('reset-password', { queryParams: { type: 'recovery' } })
+                    }
+                });
+                Alert.alert('Success', 'Password reset link sent to your email.');
+                setForgotPasswordMode(false);
+            } else if (mode === 'login') {
+                await signIn({ variables: { email: formData.email, password: formData.password } });
+            } else {
+                await signUp({
+                    variables: {
+                        email: formData.email,
+                        password: formData.password,
+                        username: formData.username
+                    }
+                });
+                Alert.alert('Check Email', 'Please verify your email to complete sign up.');
+            }
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert(
-                'Success!',
-                'Account created successfully. Please check your email for verification.',
-                [{ text: 'OK' }]
-            );
         } catch (error: any) {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert('Sign Up Error', error.message);
-        } finally {
-            setLoading(false);
+            Alert.alert('Auth Error', error.message);
         }
     };
 
-    const handleLogin = async () => {
-        if (!validateForm()) return;
-
-        setLoading(true);
+    const handleGoogleLogin = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: formData.email,
-                password: formData.password,
+            await signInWithGoogle({
+                variables: {
+                    redirectTo: Linking.createURL('google-auth')
+                }
             });
-
-            if (error) throw error;
-
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (error: any) {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert('Login Error', error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSubmit = () => {
-        if (mode === 'signup') {
-            handleSignUp();
-        } else {
-            handleLogin();
+            Alert.alert('Google Auth Error', error.message);
         }
     };
 
@@ -137,39 +147,32 @@ export const AuthContainer: React.FC = () => {
             >
                 <View style={styles.cardContainer}>
                     <BlurView intensity={BLUR_INTENSITY} tint="dark" style={styles.blurCard}>
-                        {/* App Logo/Title */}
                         <Text style={styles.appName}>DesiDates</Text>
-                        <Text style={styles.tagline}>Find Your Perfect Match</Text>
+                        <Text style={styles.tagline}>
+                            {forgotPasswordMode ? 'Reset your password' : 'Find Your Perfect Match'}
+                        </Text>
 
-                        {/* Mode Toggle */}
-                        <View style={styles.toggleContainer}>
-                            <TouchableOpacity
-                                style={[styles.toggleButton, mode === 'login' && styles.toggleButtonActive]}
-                                onPress={mode === 'signup' ? handleToggleMode : undefined}
-                                activeOpacity={0.7}
-                            >
-                                <Text
-                                    style={[styles.toggleText, mode === 'login' && styles.toggleTextActive]}
+                        {!forgotPasswordMode && (
+                            <View style={styles.toggleContainer}>
+                                <TouchableOpacity
+                                    style={[styles.toggleButton, mode === 'login' && styles.toggleButtonActive]}
+                                    onPress={mode === 'signup' ? handleToggleMode : undefined}
+                                    activeOpacity={0.7}
                                 >
-                                    Login
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.toggleButton, mode === 'signup' && styles.toggleButtonActive]}
-                                onPress={mode === 'login' ? handleToggleMode : undefined}
-                                activeOpacity={0.7}
-                            >
-                                <Text
-                                    style={[styles.toggleText, mode === 'signup' && styles.toggleTextActive]}
+                                    <Text style={[styles.toggleText, mode === 'login' && styles.toggleTextActive]}>Login</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.toggleButton, mode === 'signup' && styles.toggleButtonActive]}
+                                    onPress={mode === 'login' ? handleToggleMode : undefined}
+                                    activeOpacity={0.7}
                                 >
-                                    Sign Up
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
+                                    <Text style={[styles.toggleText, mode === 'signup' && styles.toggleTextActive]}>Sign Up</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
 
-                        {/* Form Fields */}
                         <View style={styles.formContainer}>
-                            {mode === 'signup' && (
+                            {mode === 'signup' && !forgotPasswordMode && (
                                 <GlassInput
                                     placeholder="Username"
                                     value={formData.username || ''}
@@ -181,34 +184,65 @@ export const AuthContainer: React.FC = () => {
                                 value={formData.email}
                                 onChangeText={(text) => setFormData({ ...formData, email: text })}
                                 keyboardType="email-address"
-                                autoComplete="email"
+                                autoCapitalize="none"
                             />
-                            <GlassInput
-                                placeholder="Password"
-                                value={formData.password}
-                                onChangeText={(text) => setFormData({ ...formData, password: text })}
-                                secureTextEntry
-                                autoComplete="password"
-                            />
+                            {!forgotPasswordMode && (
+                                <GlassInput
+                                    placeholder="Password"
+                                    value={formData.password}
+                                    onChangeText={(text) => setFormData({ ...formData, password: text })}
+                                    secureTextEntry
+                                />
+                            )}
                         </View>
 
-                        {/* Submit Button */}
+                        {mode === 'login' && !forgotPasswordMode && (
+                            <TouchableOpacity style={styles.forgotLink} onPress={() => setForgotPasswordMode(true)}>
+                                <Text style={styles.forgotText}>Forgot Password?</Text>
+                            </TouchableOpacity>
+                        )}
+
                         <TouchableOpacity
                             style={styles.submitButton}
-                            onPress={handleSubmit}
+                            onPress={handleAuth}
                             disabled={loading}
-                            activeOpacity={0.8}
                         >
-                            <View style={styles.submitButtonBlur}>
-                                {loading ? (
-                                    <ActivityIndicator color={COLORS.glassText} />
-                                ) : (
+                            <View style={styles.submitButtonInner}>
+                                {loading && !googleLoading ? <ActivityIndicator color={COLORS.textPrimary} /> : (
                                     <Text style={styles.submitButtonText}>
-                                        {mode === 'login' ? 'Login' : 'Create Account'}
+                                        {forgotPasswordMode ? 'Send Reset Link' : (mode === 'login' ? 'Login' : 'Create Account')}
                                     </Text>
                                 )}
                             </View>
                         </TouchableOpacity>
+
+                        {!forgotPasswordMode && (
+                            <>
+                                <View style={styles.divider}>
+                                    <View style={styles.line} />
+                                    <Text style={styles.orText}>OR</Text>
+                                    <View style={styles.line} />
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.googleButton}
+                                    onPress={handleGoogleLogin}
+                                    disabled={loading}
+                                >
+                                    <View style={styles.googleButtonInner}>
+                                        {googleLoading ? <ActivityIndicator color="#FFF" /> : (
+                                            <Text style={styles.googleButtonText}>Continue with Google</Text>
+                                        )}
+                                    </View>
+                                </TouchableOpacity>
+                            </>
+                        )}
+
+                        {forgotPasswordMode && (
+                            <TouchableOpacity style={styles.backButton} onPress={() => setForgotPasswordMode(false)}>
+                                <Text style={styles.backText}>Back to Login</Text>
+                            </TouchableOpacity>
+                        )}
                     </BlurView>
                 </View>
             </ScrollView>
@@ -217,9 +251,7 @@ export const AuthContainer: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
     scrollContent: {
         flexGrow: 1,
         justifyContent: 'center',
@@ -230,8 +262,6 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 400,
         alignSelf: 'center',
-        overflow: 'hidden',
-        borderRadius: BORDER_RADIUS.lg,
     },
     blurCard: {
         borderRadius: BORDER_RADIUS.lg,
@@ -249,6 +279,7 @@ const styles = StyleSheet.create({
         ...TYPOGRAPHY.caption,
         textAlign: 'center',
         marginBottom: SPACING.xl,
+        color: COLORS.textSecondary,
     },
     toggleContainer: {
         flexDirection: 'row',
@@ -268,33 +299,61 @@ const styles = StyleSheet.create({
     },
     toggleText: {
         ...TYPOGRAPHY.body,
-        color: COLORS.glassPlaceholder,
+        color: COLORS.textSecondary,
     },
     toggleTextActive: {
-        color: COLORS.glassText,
+        color: COLORS.textPrimary,
         fontWeight: '600',
     },
-    formContainer: {
-        marginBottom: SPACING.md,
-    },
+    formContainer: { marginBottom: SPACING.md },
+    forgotLink: { alignSelf: 'flex-end', marginBottom: SPACING.lg },
+    forgotText: { ...TYPOGRAPHY.caption, color: COLORS.accent, fontWeight: '500' },
     submitButton: {
         width: '100%',
-        overflow: 'hidden',
         borderRadius: BORDER_RADIUS.md,
-        borderWidth: 1,
-        borderColor: COLORS.accent,
-    },
-    submitButtonBlur: {
-        paddingVertical: SPACING.md,
-        paddingHorizontal: SPACING.lg,
-        alignItems: 'center',
         backgroundColor: COLORS.accent,
         overflow: 'hidden',
-        borderRadius: BORDER_RADIUS.md,
+    },
+    submitButtonInner: {
+        paddingVertical: SPACING.md,
+        alignItems: 'center',
     },
     submitButtonText: {
         ...TYPOGRAPHY.body,
         fontWeight: '600',
-        color: COLORS.glassText,
+        color: COLORS.textPrimary,
     },
+    divider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: SPACING.xl,
+    },
+    line: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    orText: {
+        marginHorizontal: SPACING.md,
+        ...TYPOGRAPHY.small,
+        color: COLORS.textSecondary,
+    },
+    googleButton: {
+        width: '100%',
+        borderRadius: BORDER_RADIUS.md,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    googleButtonInner: {
+        paddingVertical: SPACING.md,
+        alignItems: 'center',
+    },
+    googleButtonText: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.textPrimary,
+    },
+    backButton: { marginTop: SPACING.lg, alignItems: 'center' },
+    backText: { ...TYPOGRAPHY.caption, color: COLORS.textSecondary, textDecorationLine: 'underline' },
 });
+

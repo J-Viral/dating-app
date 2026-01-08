@@ -1,8 +1,10 @@
 // WelcomeView Component - Displays welcome screen after successful authentication
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { useMutation } from '@apollo/client';
+import { SIGN_OUT_MUTATION } from '../graphql/mutations';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { glassStyles, BLUR_INTENSITY } from '../styles/glassmorphism';
 import { supabase } from '../config/supabase';
@@ -32,6 +34,15 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ username }) => {
         ]).start();
     }, []);
 
+    const [signOut] = useMutation(SIGN_OUT_MUTATION, {
+        onCompleted: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+        onError: (error: any) => {
+            Alert.alert('Logout Error', error.message);
+        }
+    });
+
     const handleGetStarted = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         // TODO: Navigate to main app flow
@@ -39,8 +50,8 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ username }) => {
     };
 
     const handleLogout = async () => {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        await supabase.auth.signOut();
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        signOut();
     };
 
     return (
