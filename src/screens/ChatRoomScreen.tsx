@@ -105,7 +105,9 @@ export default function ChatRoomScreen({ route, navigation }: any) {
                 </View>
                 <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp]}>
                     {formatTime(item.created_at)}
-                    {isMe && item.read_at && ' · Read'}
+                    {isMe && item.read_at ? (
+                        <Text style={styles.readIndicator}> · Read</Text>
+                    ) : null}
                 </Text>
             </View>
         );
@@ -280,12 +282,15 @@ const styles = StyleSheet.create({
         marginHorizontal: 4,
     },
     myTimestamp: {
-        color: COLORS.textSecondary,
+        color: 'rgba(255, 255, 255, 0.7)',
         textAlign: 'right',
     },
     theirTimestamp: {
         color: COLORS.textSecondary,
         textAlign: 'left',
+    },
+    readIndicator: {
+        color: 'rgba(255, 255, 255, 0.7)',
     },
     inputContainer: {
         flexDirection: 'row',

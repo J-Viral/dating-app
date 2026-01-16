@@ -272,6 +272,10 @@ CREATE POLICY "Users can view own profile" ON users_profile
 CREATE POLICY "Users can update own profile" ON users_profile
     FOR UPDATE USING (auth.uid() = id);
 
+-- Users can insert their own profile
+CREATE POLICY "Users can insert own profile" ON users_profile
+    FOR INSERT WITH CHECK (auth.uid() = id);
+
 -- Users can view active, visible profiles (for discovery)
 CREATE POLICY "Users can view active profiles" ON users_profile
     FOR SELECT USING (is_active = true AND profile_visible = true AND is_banned = false);
@@ -283,6 +287,10 @@ CREATE POLICY "Trust scores public read" ON trust_scores
 -- Users can update own trust score
 CREATE POLICY "Users can update own trust score" ON trust_scores
     FOR UPDATE USING (auth.uid() = user_id);
+
+-- Users can insert own trust score
+CREATE POLICY "Users can insert own trust score" ON trust_scores
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Messages readable by sender or receiver
 CREATE POLICY "Messages readable by participants" ON messages
