@@ -1,25 +1,37 @@
-// Main App Component - Root of DesiDates with auth state management
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, StatusBar } from 'react-native';
+import { StyleSheet, View, StatusBar, ActivityIndicator } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import { ApolloProvider } from '@apollo/client';
 import { client } from './src/graphql/client';
 import { AuthContainer } from './src/components/AuthContainer';
-import { WelcomeView } from './src/components/WelcomeView';
-import { ResetPasswordView } from './src/components/ResetPasswordView';
+import { MainTabNavigator } from './src/navigation/AppNavigator';
+import ChatRoomScreen from './src/screens/ChatRoomScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import OnboardingFlowScreen from './src/screens/onboarding/OnboardingFlowScreen';
 import { supabase, SupabaseSession } from './src/config/supabase';
+import { ProfileService } from './src/services/ProfileService';
 import { COLORS } from './src/constants/theme';
-import * as Linking from 'expo-linking';
+
+import { MainStackParamList } from './src/navigation/types';
+
+const Stack = createStackNavigator<any>();
 
 export default function App() {
     const [session, setSession] = useState<SupabaseSession>(null);
-    const [loading, setLoading] = useState(true);
-    const [resetPasswordMode, setResetPasswordMode] = useState(false);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [profileComplete, setProfileComplete] = useState<boolean>(false);
 
     useEffect(() => {
         // Check for existing session on mount
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
-            setLoading(false);
+            if (session?.user) {
+                checkProfile(session.user.id);
+            } else {
+                setLoading(false);
+            }
         });
 
         // Listen for auth state changes
@@ -27,68 +39,102 @@ export default function App() {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session);
-
-            // If we get a PASSWORD_RECOVERY event, switch to reset password mode
-            if (event === 'PASSWORD_RECOVERY') {
-                setResetPasswordMode(true);
+            if (session?.user) {
+                checkProfile(session.user.id);
+            } else {
+                setLoading(false);
+                setProfileComplete(false);
             }
         });
-
-        // Handle deep links (for password reset)
-        const handleDeepLink = (event: { url: string }) => {
-            const { queryParams } = Linking.parse(event.url);
-            if (queryParams?.type === 'recovery') {
-                setResetPasswordMode(true);
-            }
-        };
-
-        const subscription_link = Linking.addEventListener('url', handleDeepLink);
 
         // Cleanup subscription on unmount
         return () => {
             subscription.unsubscribe();
-            subscription_link.remove();
         };
     }, []);
 
-    // Get username from user metadata
-    const username = session?.user?.user_metadata?.username || 'User';
-
-    const renderContent = () => {
-        if (loading) return null;
-
-        if (resetPasswordMode) {
-            return <ResetPasswordView onComplete={() => setResetPasswordMode(false)} />;
+    const checkProfile = async (userId: string) => {
+        setLoading(true);
+        const profile = await ProfileService.getProfile(userId);
+        
+        if (profile) {
+            const isComplete = ProfileService.isProfileComplete(profile);
+            // Ensure it's definitely a boolean
+            setProfileComplete(Boolean(isComplete));
+        } else {
+            setProfileComplete(false);
         }
-
-        if (session) {
-            return <WelcomeView username={username} />;
-        }
-
-        return <AuthContainer />;
+        
+        setLoading(false);
     };
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.backgroundPrimary} />
+                <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+        );
+    }
 
     return (
         <ApolloProvider client={client}>
-            <View style={styles.container}>
+            <NavigationContainer>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.backgroundPrimary} />
-
-                {/* Dark Navy Background - AuthKit inspired */}
-                <View style={styles.darkBackground}>
-                    {renderContent()}
-                </View>
-            </View>
+                <Stack.Navigator
+                    screenOptions={{
+                        headerShown: false,
+                        cardStyle: { backgroundColor: COLORS.backgroundPrimary },
+                    }}
+                >
+                    {!session ? (
+                        // Not logged in - show auth screens
+                        <Stack.Screen name="Auth" component={AuthContainer} />
+                    ) : !profileComplete ? (
+                        // Logged in but profile incomplete - show onboarding
+                        <Stack.Screen name="Onboarding" component={OnboardingFlowScreen} />
+                    ) : (
+                        // Logged in and profile complete - show main app
+                        <>
+                            <Stack.Screen name="MainApp" component={MainTabNavigator} />
+                            <Stack.Screen 
+                                name="ChatRoom" 
+                                component={ChatRoomScreen}
+                                options={{ headerShown: false }}
+                            />
+                            <Stack.Screen 
+                                name="EditProfile" 
+                                component={EditProfileScreen}
+                                options={{ 
+                                    headerShown: true,
+                                    title: 'Edit Profile',
+                                    headerStyle: { backgroundColor: COLORS.backgroundPrimary },
+                                    headerTintColor: COLORS.textPrimary,
+                                }}
+                            />
+                            <Stack.Screen 
+                                name="Settings" 
+                                component={SettingsScreen}
+                                options={{ 
+                                    headerShown: true,
+                                    title: 'Settings',
+                                    headerStyle: { backgroundColor: COLORS.backgroundPrimary },
+                                    headerTintColor: COLORS.textPrimary,
+                                }}
+                            />
+                        </>
+                    )}
+                </Stack.Navigator>
+            </NavigationContainer>
         </ApolloProvider>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
+    loadingContainer: {
         flex: 1,
         backgroundColor: COLORS.backgroundPrimary,
-    },
-    darkBackground: {
-        flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });
