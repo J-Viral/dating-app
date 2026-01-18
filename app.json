@@ -17,14 +17,27 @@
         ],
         "ios": {
             "supportsTablet": true,
-            "bundleIdentifier": "com.desidates.app"
+            "bundleIdentifier": "com.desidates.app",
+            "infoPlist": {
+                "NSPhotoLibraryUsageDescription": "We need access to your photos to set up your dating profile",
+                "NSCameraUsageDescription": "We need access to your camera to take profile photos",
+                "NSLocationWhenInUseUsageDescription": "We use your location to find matches nearby"
+            }
         },
         "android": {
             "adaptiveIcon": {
                 "foregroundImage": "./assets/adaptive-icon.png",
                 "backgroundColor": "#6B46C1"
             },
-            "package": "com.desidates.app"
+            "package": "com.desidates.app",
+            "permissions": [
+                "CAMERA",
+                "READ_EXTERNAL_STORAGE",
+                "WRITE_EXTERNAL_STORAGE",
+                "ACCESS_FINE_LOCATION",
+                "ACCESS_COARSE_LOCATION",
+                "RECORD_AUDIO"
+            ]
         },
         "web": {
             "favicon": "./assets/favicon.png"

@@ -14,8 +14,12 @@ export const COLORS = {
 
     // Accent colors - Light blue instead of orange
     accent: '#3B82F6', // Bright blue
+    primary: '#3B82F6', // Alias for accent (used in many components)
     accentHover: '#2563EB', // Darker blue for hover
     accentLight: 'rgba(59, 130, 246, 0.1)', // Light blue background
+
+    // Border colors
+    borderColor: '#1F2937', // Dark gray border
 
     // Status colors
     error: '#EF4444',
