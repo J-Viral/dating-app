@@ -17,6 +17,7 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
     Discovery: undefined;
     Matches: undefined;
+    DateIdeas: undefined;
     Chat: undefined;
     Profile: undefined;
 };

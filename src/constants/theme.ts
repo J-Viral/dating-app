@@ -1,41 +1,56 @@
-// Theme constants for DesiDates - Dark AuthKit-inspired design
+// Theme constants for DesiDates - Modern Purple/Pink Glassmorphism
+// Inspired by the UI-0 artifacts (Deep Purple gradient, Glass cards, Vibrant accents)
 
 export const COLORS = {
-    // Background colors: Dark navy/black theme
-    backgroundPrimary: '#0A0E1A', // Very dark navy
-    backgroundSecondary: '#111827', // Slightly lighter navy
-    backgroundTertiary: '#1F2937', // Card backgrounds
+    // Background colors
+    backgroundPrimary: '#120E16', // Very dark purple/black
+    backgroundSecondary: '#1E1629', // Slightly lighter purple/black
+    
+    // Gradients (Start/End convention usually handled in components, but defining keys here)
+    gradientPrimaryStart: '#D946EF', // Pink
+    gradientPrimaryEnd: '#8B5CF6',   // Purple
+    
+    gradientSecondaryStart: '#3B82F6', // Blue
+    gradientSecondaryEnd: '#06B6D4',   // Cyan
 
-    // Glass component colors - darker tones
-    glassBackground: 'rgba(31, 41, 55, 0.5)', // Dark blue with medium opacity
-    glassBorder: 'rgba(59, 130, 246, 0.2)', // Subtle light blue border
-    glassText: '#F9FAFB', // Almost white
-    glassPlaceholder: 'rgba(156, 163, 175, 0.7)', // Gray placeholder
+    gradientBackgroundStart: '#2E1065', // Deep Violet
+    gradientBackgroundEnd: '#000000',   // Black
 
-    // Accent colors - Light blue instead of orange
-    accent: '#3B82F6', // Bright blue
-    primary: '#3B82F6', // Alias for accent (used in many components)
-    accentHover: '#2563EB', // Darker blue for hover
-    accentLight: 'rgba(59, 130, 246, 0.1)', // Light blue background
+    // Glass component colors
+    glassBackground: 'rgba(255, 255, 255, 0.08)', // Light, transparent white for glass effect
+    glassBorder: 'rgba(224, 231, 255, 0.2)', // Subtle light border
+    glassText: '#FFFFFF',
+    glassPlaceholder: 'rgba(255, 255, 255, 0.5)',
+    glassSurface: 'rgba(30, 27, 33, 0.7)', // Darker glass for cards
 
-    // Border colors
-    borderColor: '#1F2937', // Dark gray border
+    // Accent colors
+    primary: '#D946EF', // Main Pink
+    secondary: '#8B5CF6', // Main Purple
+    tertiary: '#F472B6', // Light Pink
+    
+    // Functional Colors
+    like: '#EC4899', // Pink/Red for heart
+    nope: '#EF4444', // Red for X
+    superlike: '#8B5CF6', // Purple for Star/Lightning
+    online: '#10B981', // Green dot
 
     // Status colors
     error: '#EF4444',
     success: '#10B981',
+    warning: '#F59E0B',
 
     // Text colors
-    textPrimary: '#F9FAFB', // Almost white
-    textSecondary: '#9CA3AF', // Gray
-    textMuted: '#6B7280', // Darker gray
+    textPrimary: '#FFFFFF', 
+    textSecondary: '#E5E7EB', // Gray-200
+    textMuted: '#9CA3AF', // Gray-400
+    textHighlight: '#D946EF', // Pink text
 };
 
 export const SHADOWS = {
     subtle: {
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.15,
         shadowRadius: 4,
         elevation: 2,
     },
@@ -44,14 +59,14 @@ export const SHADOWS = {
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
-        elevation: 4,
+        elevation: 5,
     },
-    blue: {
-        shadowColor: '#3B82F6',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        elevation: 4,
+    glow: { // For active elements
+        shadowColor: '#D946EF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 8,
     },
 };
 
@@ -62,41 +77,49 @@ export const SPACING = {
     lg: 24,
     xl: 32,
     xxl: 48,
+    tabBarHeight: 80,
 };
 
 export const TYPOGRAPHY = {
+    titleLarge: {
+        fontSize: 34,
+        fontWeight: '700' as const,
+        color: COLORS.textPrimary,
+        letterSpacing: -1,
+    },
     title: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '700' as const,
         color: COLORS.textPrimary,
         letterSpacing: -0.5,
     },
     heading: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '600' as const,
         color: COLORS.textPrimary,
     },
     body: {
         fontSize: 16,
         fontWeight: '400' as const,
-        color: COLORS.textPrimary,
+        color: COLORS.textSecondary,
+        lineHeight: 24,
     },
     caption: {
         fontSize: 14,
         fontWeight: '400' as const,
-        color: COLORS.textSecondary,
+        color: COLORS.textMuted,
     },
     small: {
         fontSize: 12,
-        fontWeight: '400' as const,
+        fontWeight: '500' as const,
         color: COLORS.textMuted,
     },
 };
 
 export const BORDER_RADIUS = {
     sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 20,
+    md: 16,
+    lg: 24,
+    xl: 32,
     full: 9999,
 };

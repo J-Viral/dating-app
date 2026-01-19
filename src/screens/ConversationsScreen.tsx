@@ -8,13 +8,17 @@ import {
     TouchableOpacity,
     Image,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { MainStackParamList } from '../navigation/types';
 import { supabase } from '../config/supabase';
-import { COLORS } from '../constants/theme';
+import { COLORS, SHADOWS, BORDER_RADIUS, SPACING } from '../constants/theme';
 import { ChatService } from '../services/ChatService';
+import { ScreenBackground } from '../components/ui/ScreenBackground';
 
 type NavigationProp = StackNavigationProp<MainStackParamList, 'ChatRoom'>;
 
@@ -71,132 +75,166 @@ export default function ConversationsScreen() {
         };
 
         return (
-            <TouchableOpacity style={styles.conversationCard} onPress={handlePress}>
-                <View style={styles.avatarContainer}>
-                    <Image
-                        source={{ uri: otherUser?.profile_photo_url || otherUser?.photos?.[0] }}
-                        style={styles.avatar}
-                    />
-                    {unreadCount > 0 && (
-                        <View style={styles.unreadBadge}>
-                            <Text style={styles.unreadText}>{unreadCount}</Text>
-                        </View>
-                    )}
-                </View>
-                <View style={styles.conversationInfo}>
-                    <View style={styles.headerRow}>
-                        <Text style={styles.userName}>{otherUser?.full_name || 'Unknown'}</Text>
-                        {lastMessage && (
-                            <Text style={styles.timestamp}>
-                                {formatTime(lastMessage.created_at)}
-                            </Text>
+            <TouchableOpacity onPress={handlePress} activeOpacity={0.7} style={styles.cardContainer}>
+                 <LinearGradient
+                    colors={[COLORS.glassSurface, 'rgba(0,0,0,0.2)']}
+                    style={styles.conversationCard}
+                 >
+                    <View style={styles.avatarContainer}>
+                        <Image
+                            source={{ uri: otherUser?.profile_photo_url || otherUser?.photos?.[0] }}
+                            style={styles.avatar}
+                        />
+                        {unreadCount > 0 && (
+                            <LinearGradient
+                                colors={[COLORS.gradientPrimaryStart, COLORS.gradientPrimaryEnd]}
+                                style={styles.unreadBadge}
+                            >
+                                <Text style={styles.unreadText}>{unreadCount}</Text>
+                            </LinearGradient>
                         )}
                     </View>
-                    <Text style={styles.lastMessage} numberOfLines={1}>
-                        {lastMessage?.content || 'Say hi!'}
-                    </Text>
-                </View>
+                    <View style={styles.conversationInfo}>
+                        <View style={styles.headerRow}>
+                            <Text style={styles.userName}>{otherUser?.full_name || 'Unknown'}</Text>
+                            <Text style={styles.timestamp}>
+                                {lastMessage ? formatTime(lastMessage.created_at) : ''}
+                            </Text>
+                        </View>
+                        <Text 
+                            style={[
+                                styles.lastMessage, 
+                                unreadCount > 0 && styles.lastMessageUnread
+                            ]} 
+                            numberOfLines={1}
+                        >
+                            {lastMessage?.content || 'Say hi!'}
+                        </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+                 </LinearGradient>
             </TouchableOpacity>
         );
     };
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <ScreenBackground style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
+            </ScreenBackground>
         );
     }
 
     if (conversations.length === 0) {
         return (
-            <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No messages yet</Text>
-                <Text style={styles.emptySubtext}>Match with someone to start chatting!</Text>
-            </View>
+            <ScreenBackground style={styles.emptyContainer}>
+                <View style={[styles.glassMessage, { alignItems: 'center' }]}>
+                    <Ionicons name="chatbubbles-outline" size={48} color={COLORS.textMuted} />
+                    <Text style={styles.emptyText}>No messages yet</Text>
+                    <Text style={styles.emptySubtext}>Match with someone to start chatting!</Text>
+                </View>
+            </ScreenBackground>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <ScreenBackground style={styles.container}>
             <FlatList
                 data={conversations}
                 renderItem={renderConversationItem}
                 keyExtractor={(item) => item.match.id}
                 contentContainerStyle={styles.listContainer}
             />
-        </View>
+        </ScreenBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
+        paddingTop: Platform.OS === 'android' ? 40 : 60,
     },
     loadingContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.backgroundPrimary,
     },
     emptyContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.backgroundPrimary,
         padding: 20,
     },
+    glassMessage: {
+        padding: 40,
+        backgroundColor: COLORS.glassBackground,
+        borderRadius: BORDER_RADIUS.xl,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+        ...SHADOWS.medium,
+    },
     emptyText: {
-        fontSize: 20,
-        fontWeight: '600',
+        fontSize: 22,
+        fontWeight: '700',
         color: COLORS.textPrimary,
         marginBottom: 8,
+        marginTop: 16,
     },
     emptySubtext: {
-        fontSize: 14,
+        fontSize: 16,
         color: COLORS.textSecondary,
         textAlign: 'center',
     },
     listContainer: {
         paddingVertical: 8,
+        paddingHorizontal: 16,
+        paddingBottom: 100, // Tab bar space
+    },
+    cardContainer: {
+        marginBottom: 12,
+        ...SHADOWS.subtle,
     },
     conversationCard: {
         flexDirection: 'row',
         padding: 16,
-        backgroundColor: COLORS.backgroundPrimary,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.borderColor,
+        borderRadius: BORDER_RADIUS.lg,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
     },
     avatarContainer: {
         position: 'relative',
-        marginRight: 12,
+        marginRight: 16,
     },
     avatar: {
         width: 56,
         height: 56,
         borderRadius: 28,
+        borderWidth: 2,
+        borderColor: COLORS.primary,
     },
     unreadBadge: {
         position: 'absolute',
-        top: -4,
-        right: -4,
-        backgroundColor: COLORS.primary,
-        borderRadius: 12,
-        minWidth: 24,
-        height: 24,
+        top: -2,
+        right: -2,
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 6,
+        borderWidth: 2,
+        borderColor: COLORS.backgroundSecondary,
     },
     unreadText: {
         color: '#FFFFFF',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '600',
     },
     conversationInfo: {
         flex: 1,
         justifyContent: 'center',
+        marginRight: 8,
     },
     headerRow: {
         flexDirection: 'row',
@@ -206,15 +244,19 @@ const styles = StyleSheet.create({
     },
     userName: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '700',
         color: COLORS.textPrimary,
     },
     timestamp: {
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color: COLORS.textMuted,
     },
     lastMessage: {
         fontSize: 14,
         color: COLORS.textSecondary,
+    },
+    lastMessageUnread: {
+        color: COLORS.textPrimary,
+        fontWeight: '600',
     },
 });

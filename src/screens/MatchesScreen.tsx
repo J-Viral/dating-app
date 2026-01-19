@@ -8,11 +8,16 @@ import {
     TouchableOpacity,
     Image,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../config/supabase';
-import { COLORS } from '../constants/theme';
+import { COLORS, SHADOWS, BORDER_RADIUS, SPACING } from '../constants/theme';
+import { glassStyles } from '../styles/glassmorphism';
 import { MatchingService } from '../services/MatchingService';
 import { Match } from '../types/profile';
+import { ScreenBackground } from '../components/ui/ScreenBackground';
 
 export default function MatchesScreen() {
     const [matches, setMatches] = useState<Match[]>([]);
@@ -43,126 +48,151 @@ export default function MatchesScreen() {
         if (!otherUser) return null;
 
         return (
-            <TouchableOpacity style={styles.matchCard}>
-                <Image
-                    source={{ uri: otherUser.profile_photo_url || otherUser.photos?.[0] }}
-                    style={styles.matchImage}
-                />
-                <View style={styles.matchInfo}>
-                    <Text style={styles.matchName}>{otherUser.full_name}</Text>
-                    {otherUser.city && (
-                        <Text style={styles.matchLocation}>📍 {otherUser.city}</Text>
-                    )}
-                    <Text style={styles.matchedDate}>
-                        Matched {new Date(item.matched_at).toLocaleDateString()}
-                    </Text>
-                </View>
-                <View style={styles.actionIndicator}>
-                    <Text style={styles.actionText}>Chat →</Text>
-                </View>
+            <TouchableOpacity style={styles.matchCardContainer} activeOpacity={0.8}>
+                 <LinearGradient
+                    colors={[COLORS.glassSurface, 'rgba(0,0,0,0.4)']}
+                    style={styles.matchCard}
+                 >
+                    <Image
+                        source={{ uri: otherUser.profile_photo_url || otherUser.photos?.[0] }}
+                        style={styles.matchImage}
+                    />
+                    <View style={styles.matchInfo}>
+                        <Text style={styles.matchName}>{otherUser.full_name}</Text>
+                        {otherUser.city && (
+                            <Text style={styles.matchLocation}>
+                                <Ionicons name="location-sharp" size={12} color={COLORS.textMuted} /> {otherUser.city}
+                            </Text>
+                        )}
+                        <Text style={styles.matchedDate}>
+                            Matched {new Date(item.matched_at).toLocaleDateString()}
+                        </Text>
+                    </View>
+                    <View style={styles.actionButton}>
+                        <LinearGradient
+                            colors={[COLORS.gradientPrimaryStart, COLORS.gradientPrimaryEnd]}
+                            style={styles.chatIcon}
+                        >
+                            <Ionicons name="chatbubble-ellipses" size={20} color="#FFF" />
+                        </LinearGradient>
+                    </View>
+                 </LinearGradient>
             </TouchableOpacity>
         );
     };
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <ScreenBackground style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
+            </ScreenBackground>
         );
     }
 
     if (matches.length === 0) {
         return (
-            <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No matches yet</Text>
-                <Text style={styles.emptySubtext}>Start swiping to find your matches!</Text>
-            </View>
+            <ScreenBackground style={styles.emptyContainer}>
+                <View style={[glassStyles.glassCard, { alignItems: 'center' }]}>
+                    <Ionicons name="heart-dislike-outline" size={48} color={COLORS.textMuted} />
+                    <Text style={styles.emptyText}>No matches yet</Text>
+                    <Text style={styles.emptySubtext}>Keep swiping to find your match!</Text>
+                </View>
+            </ScreenBackground>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <ScreenBackground style={styles.container}>
             <FlatList
                 data={matches}
                 renderItem={renderMatchItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContainer}
             />
-        </View>
+        </ScreenBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
+        paddingTop: Platform.OS === 'android' ? 40 : 60,
     },
     loadingContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.backgroundPrimary,
     },
     emptyContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.backgroundPrimary,
         padding: 20,
     },
     emptyText: {
-        fontSize: 20,
-        fontWeight: '600',
+        fontSize: 22,
+        fontWeight: '700',
         color: COLORS.textPrimary,
         marginBottom: 8,
+        marginTop: 16,
     },
     emptySubtext: {
-        fontSize: 14,
+        fontSize: 16,
         color: COLORS.textSecondary,
         textAlign: 'center',
     },
     listContainer: {
-        padding: 16,
+        padding: 20,
+        paddingBottom: 100, // Space for tab bar
+    },
+    matchCardContainer: {
+        marginBottom: 16,
+        ...SHADOWS.medium,
+        borderRadius: BORDER_RADIUS.lg,
     },
     matchCard: {
         flexDirection: 'row',
-        backgroundColor: COLORS.backgroundSecondary,
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 12,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: 16,
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
     },
     matchImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        marginRight: 12,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        marginRight: 16,
+        borderWidth: 2,
+        borderColor: COLORS.primary,
     },
     matchInfo: {
         flex: 1,
     },
     matchName: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 18,
+        fontWeight: '700',
         color: COLORS.textPrimary,
         marginBottom: 4,
     },
     matchLocation: {
-        fontSize: 12,
+        fontSize: 13,
         color: COLORS.textSecondary,
-        marginBottom: 2,
+        marginBottom: 4,
     },
     matchedDate: {
-        fontSize: 11,
-        color: COLORS.textSecondary,
+        fontSize: 12,
+        color: COLORS.textMuted,
     },
-    actionIndicator: {
-        paddingHorizontal: 12,
+    actionButton: {
+        marginLeft: 12,
     },
-    actionText: {
-        fontSize: 14,
-        color: COLORS.primary,
-        fontWeight: '600',
+    chatIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...SHADOWS.glow,
     },
 });

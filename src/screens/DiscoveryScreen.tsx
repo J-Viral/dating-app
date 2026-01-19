@@ -9,16 +9,21 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
-import { COLORS } from '../constants/theme';
+import { COLORS, SHADOWS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { MatchingService } from '../services/MatchingService';
 import { SubscriptionService } from '../services/SubscriptionService';
 import { DiscoveryProfile } from '../types/profile';
+import { ScreenBackground } from '../components/ui/ScreenBackground';
 
 const { width, height } = Dimensions.get('window');
 
 export default function DiscoveryScreen() {
+    console.log('Rendering DiscoveryScreen'); // Debug log to confirm load
     const [profiles, setProfiles] = useState<DiscoveryProfile[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -94,19 +99,22 @@ export default function DiscoveryScreen() {
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <ScreenBackground style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
                 <Text style={styles.loadingText}>Finding matches...</Text>
-            </View>
+            </ScreenBackground>
         );
     }
 
     if (profiles.length === 0 || currentIndex >= profiles.length) {
         return (
-            <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No more profiles to show</Text>
-                <Text style={styles.emptySubtext}>Check back later for new matches!</Text>
-            </View>
+            <ScreenBackground style={styles.emptyContainer}>
+                <View style={styles.glassMessage}>
+                    <Ionicons name="people-outline" size={48} color={COLORS.textMuted} />
+                    <Text style={styles.emptyText}>No more profiles</Text>
+                    <Text style={styles.emptySubtext}>Check back later or adjust your filters!</Text>
+                </View>
+            </ScreenBackground>
         );
     }
 
@@ -114,7 +122,7 @@ export default function DiscoveryScreen() {
     const age = currentProfile.age || 0;
 
     return (
-        <View style={styles.container}>
+        <ScreenBackground style={styles.container}>
             {/* Swipes remaining indicator */}
             {swipesRemaining >= 0 && (
                 <View style={styles.swipesRemainingContainer}>
@@ -132,8 +140,11 @@ export default function DiscoveryScreen() {
                     resizeMode="cover"
                 />
 
-                {/* Profile Info Overlay */}
-                <View style={styles.infoOverlay}>
+                {/* Gradient Info Overlay */}
+                <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']}
+                    style={styles.infoOverlay}
+                >
                     <View style={styles.nameRow}>
                         <Text style={styles.name}>
                             {currentProfile.full_name}, {age}
@@ -148,7 +159,9 @@ export default function DiscoveryScreen() {
                     </View>
 
                     {currentProfile.city && (
-                        <Text style={styles.location}>📍 {currentProfile.city}</Text>
+                        <Text style={styles.location}>
+                             <Ionicons name="location-sharp" size={14} color={COLORS.primary} /> {currentProfile.city}
+                        </Text>
                     )}
 
                     {currentProfile.bio && (
@@ -166,46 +179,62 @@ export default function DiscoveryScreen() {
                             ))}
                         </View>
                     )}
-                </View>
+                </LinearGradient>
             </View>
 
             {/* Action Buttons */}
             <View style={styles.actionsContainer}>
                 <TouchableOpacity
-                    style={[styles.actionButton, styles.passButton]}
+                    style={styles.actionButtonContainer}
                     onPress={() => handleSwipe('pass')}
+                    activeOpacity={0.7}
                 >
-                    <Text style={styles.actionButtonText}>✕</Text>
+                    <LinearGradient
+                        colors={['#4B5563', '#1F2937']} // Gray/Dark for pass
+                        style={styles.actionButton}
+                    >
+                         <Ionicons name="close" size={32} color={COLORS.nope} />
+                    </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[styles.actionButton, styles.superLikeButton]}
+                    style={[styles.actionButtonContainer, styles.superLikeCoords]}
                     onPress={() => handleSwipe('super_like')}
+                    activeOpacity={0.7}
                 >
-                    <Text style={styles.actionButtonText}>★</Text>
+                    <LinearGradient
+                         colors={[COLORS.gradientSecondaryStart, COLORS.gradientSecondaryEnd]} // Blue/Cyan
+                         style={styles.actionButtonSmall}
+                    >
+                        <Ionicons name="flash" size={24} color="#FFF" />
+                    </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[styles.actionButton, styles.likeButton]}
+                    style={styles.actionButtonContainer}
                     onPress={() => handleSwipe('like')}
+                    activeOpacity={0.7}
                 >
-                    <Text style={styles.actionButtonText}>♡</Text>
+                    <LinearGradient
+                        colors={[COLORS.gradientPrimaryStart, COLORS.gradientPrimaryEnd]} // Pink/Purple for Like
+                        style={styles.actionButton}
+                    >
+                         <Ionicons name="heart" size={32} color="#FFF" />
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
-        </View>
+        </ScreenBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
         alignItems: 'center',
-        paddingTop: 20,
+        paddingTop: Platform.OS === 'android' ? 40 : 60, // Adjust for transparent header
     },
     loadingContainer: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -216,43 +245,54 @@ const styles = StyleSheet.create({
     },
     emptyContainer: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
         alignItems: 'center',
         justifyContent: 'center',
         padding: 20,
     },
+    glassMessage: {
+        padding: 40,
+        backgroundColor: COLORS.glassBackground,
+        borderRadius: BORDER_RADIUS.xl,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+        alignItems: 'center',
+        ...SHADOWS.medium,
+    },
     emptyText: {
-        fontSize: 20,
-        fontWeight: '600',
+        fontSize: 24,
+        fontWeight: '700',
         color: COLORS.textPrimary,
         marginBottom: 8,
+        marginTop: 16,
     },
     emptySubtext: {
-        fontSize: 14,
+        fontSize: 16,
         color: COLORS.textSecondary,
+        textAlign: 'center',
     },
     swipesRemainingContainer: {
-        backgroundColor: COLORS.backgroundSecondary,
+        backgroundColor: COLORS.glassSurface,
         paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingVertical: 6,
         borderRadius: 20,
-        marginBottom: 16,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
     },
     swipesRemainingText: {
         color: COLORS.textSecondary,
         fontSize: 12,
+        fontWeight: '600',
     },
     card: {
-        width: width - 40,
-        height: height * 0.65,
+        width: width - 32,
+        height: height * 0.62,
         backgroundColor: COLORS.backgroundSecondary,
-        borderRadius: 16,
+        borderRadius: BORDER_RADIUS.xl,
         overflow: 'hidden',
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+        ...SHADOWS.medium,
     },
     profileImage: {
         width: '100%',
@@ -263,40 +303,46 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        padding: 20,
+        padding: 24,
+        paddingTop: 60, // Gradient fade start
     },
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 4,
     },
     name: {
-        fontSize: 28,
+        fontSize: 30,
         fontWeight: '700',
         color: '#FFFFFF',
         flex: 1,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
     },
     trustBadge: {
-        backgroundColor: COLORS.primary,
-        paddingHorizontal: 12,
+        backgroundColor: COLORS.glassSurface,
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 12,
+        borderRadius: BORDER_RADIUS.md,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
     },
     trustBadgeText: {
-        color: '#FFFFFF',
+        color: COLORS.primary,
         fontSize: 12,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     location: {
-        fontSize: 14,
-        color: '#EEEEEE',
-        marginBottom: 8,
+        fontSize: 16,
+        color: '#E0E0E0',
+        marginBottom: 12,
     },
     bio: {
-        fontSize: 14,
+        fontSize: 15,
         color: '#DDDDDD',
-        marginBottom: 12,
+        marginBottom: 16,
+        lineHeight: 22,
     },
     interestsContainer: {
         flexDirection: 'row',
@@ -304,46 +350,44 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     interestTag: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: 16,
+        borderRadius: 100,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     interestText: {
         color: '#FFFFFF',
-        fontSize: 12,
+        fontSize: 13,
+        fontWeight: '500',
     },
     actionsContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        width: width - 80,
+        width: width - 60, // Wider for space
         marginTop: 24,
+        paddingHorizontal: 20,
+    },
+    actionButtonContainer: {
+        ...SHADOWS.glow,
+    },
+    superLikeCoords: {
+        marginBottom: 20, // Sit higher
     },
     actionButton: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         alignItems: 'center',
         justifyContent: 'center',
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
     },
-    passButton: {
-        backgroundColor: '#FF5A5F',
-    },
-    likeButton: {
-        backgroundColor: '#4CAF50',
-    },
-    superLikeButton: {
-        backgroundColor: '#2196F3',
-    },
-    actionButtonText: {
-        fontSize: 32,
-        color: '#FFFFFF',
-        fontWeight: '600',
+    actionButtonSmall: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

@@ -21,7 +21,8 @@
             "infoPlist": {
                 "NSPhotoLibraryUsageDescription": "We need access to your photos to set up your dating profile",
                 "NSCameraUsageDescription": "We need access to your camera to take profile photos",
-                "NSLocationWhenInUseUsageDescription": "We use your location to find matches nearby"
+                "NSLocationWhenInUseUsageDescription": "We use your location to find matches nearby",
+                "NSMicrophoneUsageDescription": "We need access to your microphone to record voice intros"
             }
         },
         "android": {

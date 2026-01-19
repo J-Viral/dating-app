@@ -3,23 +3,25 @@ import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
     TouchableOpacity,
     TextInput,
     Image,
     ActivityIndicator,
     Alert,
-    KeyboardAvoidingView,
     Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { COLORS, SHADOWS, BORDER_RADIUS, SPACING } from '../constants/theme';
 import { supabase } from '../config/supabase';
 import { ProfileService } from '../services/ProfileService';
 import { UserProfile } from '../types/profile';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { ScreenBackground } from '../components/ui/ScreenBackground';
+import { glassStyles } from '../styles/glassmorphism';
+import { GradientButton } from '../components/ui/GradientButton';
 
-export default function EditProfileScreen() {
+export default function EditProfileScreen({ navigation }: any) {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -58,15 +60,27 @@ export default function EditProfileScreen() {
         });
 
         if (!result.canceled && result.assets[0].uri && profile) {
-            const uploadUrl = await ProfileService.uploadPhoto(profile.id, result.assets[0].uri);
+            // Optimistic update for better UX
+            const localUri = result.assets[0].uri;
+            const newPhotos = [...photos];
+            if (index < newPhotos.length) {
+                newPhotos[index] = localUri;
+            } else {
+                newPhotos.push(localUri);
+            }
+            setPhotos(newPhotos);
+
+            // Upload in background
+            const uploadUrl = await ProfileService.uploadPhoto(profile.id, localUri);
             if (uploadUrl) {
-                const newPhotos = [...photos];
-                if (index < newPhotos.length) {
-                    newPhotos[index] = uploadUrl;
+                // Confirm with server URL
+                const confirmedPhotos = [...photos];
+                if (index < confirmedPhotos.length) {
+                    confirmedPhotos[index] = uploadUrl;
                 } else {
-                    newPhotos.push(uploadUrl);
+                    confirmedPhotos.push(uploadUrl);
                 }
-                setPhotos(newPhotos);
+                setPhotos(confirmedPhotos);
             }
         }
     };
@@ -93,7 +107,9 @@ export default function EditProfileScreen() {
         setSaving(false);
 
         if (success) {
-            Alert.alert('Success', 'Profile updated successfully');
+            Alert.alert('Success', 'Profile updated successfully', [
+                { text: 'OK', onPress: () => navigation.goBack() }
+            ]);
         } else {
             Alert.alert('Error', 'Failed to update profile');
         }
@@ -101,189 +117,252 @@ export default function EditProfileScreen() {
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <ScreenBackground style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
+            </ScreenBackground>
         );
     }
 
     return (
-        <KeyboardAwareScrollView 
-            style={styles.container}
-            contentContainerStyle={styles.contentContainer}
-            enableOnAndroid={true}
-        >
-            <Text style={styles.sectionTitle}>Photos</Text>
-            <View style={styles.photoGrid}>
-                {[0, 1, 2, 3, 4, 5].map((idx) => (
-                    <TouchableOpacity 
-                        key={idx} 
-                        style={styles.photoBox}
-                        onPress={() => handlePickImage(idx)}
-                    >
-                        {photos[idx] ? (
-                            <>
-                                <Image source={{ uri: photos[idx] }} style={styles.photo} />
-                                <TouchableOpacity 
-                                    style={styles.removeBtn}
-                                    onPress={() => handleRemovePhoto(idx)}
-                                >
-                                    <Text style={styles.removeBtnText}>×</Text>
-                                </TouchableOpacity>
-                            </>
-                        ) : (
-                            <Text style={styles.addPhotoText}>+</Text>
-                        )}
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            <View style={styles.inputSection}>
-                <Text style={styles.sectionTitle}>Bio</Text>
-                <TextInput
-                    style={[styles.input, styles.bioInput]}
-                    multiline
-                    numberOfLines={4}
-                    placeholder="Tell us about yourself..."
-                    placeholderTextColor={COLORS.textSecondary}
-                    value={bio}
-                    onChangeText={setBio}
-                />
-
-                <Text style={styles.sectionTitle}>Occupation</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Graphic Designer, etc."
-                    placeholderTextColor={COLORS.textSecondary}
-                    value={occupation}
-                    onChangeText={setOccupation}
-                />
-
-                <Text style={styles.sectionTitle}>Education</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="University of Mumbai, etc."
-                    placeholderTextColor={COLORS.textSecondary}
-                    value={education}
-                    onChangeText={setEducation}
-                />
-
-                <Text style={styles.sectionTitle}>Height (cm)</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="175"
-                    keyboardType="numeric"
-                    placeholderTextColor={COLORS.textSecondary}
-                    value={height}
-                    onChangeText={setHeight}
-                />
-            </View>
-
-            <TouchableOpacity 
-                style={[styles.saveButton, saving && styles.disabledButton]} 
-                onPress={handleSave}
-                disabled={saving}
+        <ScreenBackground>
+            <KeyboardAwareScrollView 
+                style={styles.container}
+                contentContainerStyle={styles.contentContainer}
+                enableOnAndroid={true}
+                extraScrollHeight={Platform.OS === 'ios' ? 20 : 0}
             >
-                {saving ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                    <Text style={styles.saveButtonText}>Save Changes</Text>
-                )}
-            </TouchableOpacity>
-        </KeyboardAwareScrollView>
+                {/* Photos Section */}
+                <View style={[styles.section, glassStyles.glassCard]}>
+                    <Text style={styles.sectionTitle}>
+                         <Ionicons name="images" size={18} color={COLORS.primary} />  My Photos
+                    </Text>
+                    <Text style={styles.sectionSubtitle}>Add at least 2 photos to stand out</Text>
+                    
+                    <View style={styles.photoGrid}>
+                        {[0, 1, 2, 3, 4, 5].map((idx) => (
+                            <TouchableOpacity 
+                                key={idx} 
+                                style={[styles.photoBox, !photos[idx] && styles.photoBoxEmpty]}
+                                onPress={() => handlePickImage(idx)}
+                            >
+                                {photos[idx] ? (
+                                    <>
+                                        <Image source={{ uri: photos[idx] }} style={styles.photo} />
+                                        <TouchableOpacity 
+                                            style={styles.removeBtn}
+                                            onPress={() => handleRemovePhoto(idx)}
+                                        >
+                                            <Ionicons name="close" size={14} color="#FFF" />
+                                        </TouchableOpacity>
+                                        {idx === 0 && (
+                                            <View style={styles.mainBadge}>
+                                                <Text style={styles.mainBadgeText}>Main</Text>
+                                            </View>
+                                        )}
+                                    </>
+                                ) : (
+                                    <Ionicons name="add" size={32} color={COLORS.textMuted} />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Details Section */}
+                <View style={[styles.section, glassStyles.glassCard]}>
+                    <Text style={styles.sectionTitle}>
+                         <Ionicons name="person" size={18} color={COLORS.primary} />  About Me
+                    </Text>
+                    
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Bio</Text>
+                        <TextInput
+                            style={[styles.input, styles.bioInput]}
+                            multiline
+                            numberOfLines={4}
+                            placeholder="Tell us about your interests, hobbies..."
+                            placeholderTextColor={COLORS.textSecondary}
+                            value={bio}
+                            onChangeText={setBio}
+                        />
+                    </View>
+
+                    <View style={styles.row}>
+                        <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                            <Text style={styles.label}>Job Title</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Software Engineer"
+                                placeholderTextColor={COLORS.textSecondary}
+                                value={occupation}
+                                onChangeText={setOccupation}
+                            />
+                        </View>
+                        <View style={[styles.inputGroup, { width: 100 }]}>
+                            <Text style={styles.label}>Height (cm)</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="175"
+                                keyboardType="numeric"
+                                placeholderTextColor={COLORS.textSecondary}
+                                value={height}
+                                onChangeText={setHeight}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Education</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="University / College"
+                            placeholderTextColor={COLORS.textSecondary}
+                            value={education}
+                            onChangeText={setEducation}
+                        />
+                    </View>
+                </View>
+
+                <View style={styles.footer}>
+                    <GradientButton 
+                        title={saving ? "Saving Changes..." : "Save Profile"}
+                        onPress={handleSave}
+                        disabled={saving}
+                        icon="checkmark-circle"
+                    />
+                     <TouchableOpacity 
+                        style={styles.cancelButton}
+                        onPress={() => navigation.goBack()}
+                        disabled={saving}
+                    >
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                     </TouchableOpacity>
+                </View>
+
+            </KeyboardAwareScrollView>
+        </ScreenBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
     },
     contentContainer: {
         padding: 20,
+        paddingBottom: 40,
     },
     loadingContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: COLORS.backgroundPrimary,
+    },
+    section: {
+        marginBottom: 20,
+        padding: 20,
     },
     sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 18,
+        fontWeight: '700',
         color: COLORS.textPrimary,
-        marginTop: 20,
-        marginBottom: 10,
+        marginBottom: 4,
+    },
+    sectionSubtitle: {
+        fontSize: 13,
+        color: COLORS.textSecondary,
+        marginBottom: 16,
     },
     photoGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 10,
+        gap: 12,
     },
     photoBox: {
         width: '31%',
         aspectRatio: 0.8,
-        backgroundColor: COLORS.backgroundSecondary,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderRadius: BORDER_RADIUS.md,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: COLORS.borderColor,
+        borderColor: COLORS.glassBorder,
+        ...SHADOWS.subtle,
+    },
+    photoBoxEmpty: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderStyle: 'dashed',
+        borderWidth: 1.5,
     },
     photo: {
         width: '100%',
         height: '100%',
     },
-    addPhotoText: {
-        fontSize: 32,
-        color: COLORS.primary,
-    },
     removeBtn: {
         position: 'absolute',
-        top: 5,
-        right: 5,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        top: 6,
+        right: 6,
+        backgroundColor: COLORS.error,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#FFF',
     },
-    removeBtnText: {
-        color: '#FFFFFF',
-        fontSize: 16,
+    mainBadge: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingVertical: 4,
+        alignItems: 'center',
+    },
+    mainBadgeText: {
+        color: '#FFF',
+        fontSize: 10,
         fontWeight: '700',
+        textTransform: 'uppercase',
     },
-    inputSection: {
-        marginTop: 10,
+    inputGroup: {
+        marginBottom: 16,
+    },
+    row: {
+        flexDirection: 'row',
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+        marginBottom: 8,
+        marginLeft: 4,
     },
     input: {
-        backgroundColor: COLORS.backgroundSecondary,
-        borderRadius: 8,
-        padding: 12,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: 14,
         color: COLORS.textPrimary,
         fontSize: 16,
-        marginBottom: 10,
     },
     bioInput: {
-        height: 100,
+        height: 120,
         textAlignVertical: 'top',
+        lineHeight: 22,
     },
-    saveButton: {
-        backgroundColor: COLORS.primary,
-        padding: 16,
-        borderRadius: 12,
+    footer: {
+        marginTop: 10,
+        gap: 16,
+    },
+    cancelButton: {
         alignItems: 'center',
-        marginTop: 30,
-        marginBottom: 20,
+        padding: 12,
     },
-    saveButtonText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    disabledButton: {
-        opacity: 0.7,
+    cancelButtonText: {
+        color: COLORS.textSecondary,
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

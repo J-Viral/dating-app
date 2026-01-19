@@ -14,10 +14,14 @@ import {
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { MainStackParamList } from '../navigation/types';
 import { ChatService } from '../services/ChatService';
 import { Message } from '../types/profile';
-import { COLORS } from '../constants/theme';
+import { COLORS, SHADOWS, BORDER_RADIUS, SPACING } from '../constants/theme';
+import { glassStyles } from '../styles/glassmorphism';
+import { ScreenBackground } from '../components/ui/ScreenBackground';
 
 export default function ChatRoomScreen({ route, navigation }: any) {
     const { matchId, otherUserId, otherUserName, otherUserPhoto } = route.params;
@@ -98,11 +102,26 @@ export default function ChatRoomScreen({ route, navigation }: any) {
         
         return (
             <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.theirMessage]}>
-                <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
-                    <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
-                        {item.content}
-                    </Text>
-                </View>
+                {isMe ? (
+                    <LinearGradient
+                        colors={[COLORS.gradientPrimaryStart, COLORS.gradientPrimaryEnd]}
+                        style={[styles.messageBubble, styles.myBubble]}
+                    >
+                        <Text style={[styles.messageText, styles.myMessageText]}>
+                            {item.content}
+                        </Text>
+                    </LinearGradient>
+                ) : (
+                    <LinearGradient
+                        colors={[COLORS.glassSurface, 'rgba(0,0,0,0.3)']}
+                        style={[styles.messageBubble, styles.theirBubble]}
+                    >
+                        <Text style={[styles.messageText, styles.theirMessageText]}>
+                            {item.content}
+                        </Text>
+                    </LinearGradient>
+                )}
+                
                 <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp]}>
                     {formatTime(item.created_at)}
                     {isMe && item.read_at ? (
@@ -113,127 +132,138 @@ export default function ChatRoomScreen({ route, navigation }: any) {
         );
     };
 
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
-        );
-    }
-
     return (
-        <KeyboardAvoidingView 
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={90}
-        >
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Text style={styles.backIcon}>←</Text>
-                </TouchableOpacity>
-                {otherUserPhoto && (
-                    <Image source={{ uri: otherUserPhoto }} style={styles.avatar} />
-                )}
-                <Text style={styles.headerTitle}>{otherUserName}</Text>
-            </View>
-
-            {/* Messages List */}
-            <FlatList
-                ref={flatListRef}
-                data={messages}
-                renderItem={renderMessage}
-                keyExtractor={(item) => item.id}
-                inverted
-                contentContainerStyle={styles.messagesList}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No messages yet</Text>
-                        <Text style={styles.emptySubtext}>Say hi to start the conversation! 👋</Text>
-                    </View>
-                }
-            />
-
-            {/* Input Bar */}
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    value={messageText}
-                    onChangeText={setMessageText}
-                    placeholder="Type a message..."
-                    placeholderTextColor={COLORS.textSecondary}
-                    multiline
-                    maxLength={1000}
-                />
-                <TouchableOpacity
-                    style={[styles.sendButton, (!messageText.trim() || sending) && styles.sendButtonDisabled]}
-                    onPress={handleSend}
-                    disabled={!messageText.trim() || sending}
-                >
-                    {sending ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                        <Text style={styles.sendIcon}>📤</Text>
+        <ScreenBackground>
+            <KeyboardAvoidingView 
+                style={styles.container}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
+                {/* Glass Header */}
+                <View style={[styles.header, glassStyles.glassCard, { borderRadius: 0, borderWidth: 0, borderBottomWidth: 1 }]}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <Ionicons name="chevron-back" size={28} color={COLORS.textPrimary} />
+                    </TouchableOpacity>
+                    {otherUserPhoto && (
+                        <Image source={{ uri: otherUserPhoto }} style={styles.avatar} />
                     )}
-                </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+                    <Text style={styles.headerTitle}>{otherUserName}</Text>
+                    <TouchableOpacity style={styles.headerAction}>
+                        <Ionicons name="ellipsis-vertical" size={24} color={COLORS.textPrimary} />
+                    </TouchableOpacity>
+                </View>
+
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                    </View>
+                ) : (
+                    <FlatList
+                        ref={flatListRef}
+                        data={messages}
+                        renderItem={renderMessage}
+                        keyExtractor={(item) => item.id}
+                        inverted
+                        contentContainerStyle={styles.messagesList}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <Text style={styles.emptyText}>No messages yet</Text>
+                                <Text style={styles.emptySubtext}>Say hi to start the conversation! 👋</Text>
+                            </View>
+                        }
+                    />
+                )}
+
+                {/* Glass Input Bar */}
+                <View style={[styles.inputContainer, glassStyles.glassCard, { borderRadius: 0, borderWidth: 0, borderTopWidth: 1 }]}>
+                    <TouchableOpacity style={styles.attachButton}>
+                         <Ionicons name="add-circle-outline" size={28} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+                    <TextInput
+                        style={styles.input}
+                        value={messageText}
+                        onChangeText={setMessageText}
+                        placeholder="Type a message..."
+                        placeholderTextColor={COLORS.textSecondary}
+                        multiline
+                        maxLength={1000}
+                    />
+                    <TouchableOpacity
+                        style={[styles.sendButton, (!messageText.trim() || sending) && styles.sendButtonDisabled]}
+                        onPress={handleSend}
+                        disabled={!messageText.trim() || sending}
+                    >
+                        {sending ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                            <LinearGradient
+                                colors={[COLORS.gradientPrimaryStart, COLORS.gradientPrimaryEnd]}
+                                style={styles.sendGradient}
+                            >
+                                <Ionicons name="send" size={18} color="#FFFFFF" style={{ marginLeft: 2 }} />
+                            </LinearGradient>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
+        </ScreenBackground>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
     },
     loadingContainer: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
         alignItems: 'center',
         justifyContent: 'center',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        paddingTop: 60,
-        backgroundColor: COLORS.backgroundSecondary,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.borderColor,
+        paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'ios' ? 50 : 20,
+        paddingBottom: 12,
+        marginBottom: 0,
+        backgroundColor: COLORS.glassBackground, // Fallback or override
     },
     backButton: {
         marginRight: 12,
-    },
-    backIcon: {
-        fontSize: 24,
-        color: COLORS.textPrimary,
+        padding: 4,
     },
     avatar: {
         width: 40,
         height: 40,
         borderRadius: 20,
         marginRight: 12,
+        borderWidth: 2,
+        borderColor: COLORS.primary,
     },
     headerTitle: {
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: '700',
         color: COLORS.textPrimary,
         flex: 1,
     },
+    headerAction: {
+        padding: 4,
+    },
     messagesList: {
         padding: 16,
-        flexGrow: 1,
+        paddingBottom: 16,
     },
     emptyContainer: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 100,
+        paddingVertical: 60,
+        transform: [{ scaleY: -1 }], // Counteract inverted list
     },
     emptyText: {
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: '700',
         color: COLORS.textPrimary,
         marginBottom: 8,
     },
@@ -254,21 +284,22 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     messageBubble: {
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 12,
         paddingHorizontal: 16,
+        ...SHADOWS.subtle,
     },
     myBubble: {
-        backgroundColor: COLORS.primary,
         borderBottomRightRadius: 4,
     },
     theirBubble: {
-        backgroundColor: COLORS.backgroundSecondary,
         borderBottomLeftRadius: 4,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
     },
     messageText: {
         fontSize: 16,
-        lineHeight: 20,
+        lineHeight: 22,
     },
     myMessageText: {
         color: '#FFFFFF',
@@ -277,52 +308,59 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
     },
     timestamp: {
-        fontSize: 11,
+        fontSize: 10,
         marginTop: 4,
         marginHorizontal: 4,
     },
     myTimestamp: {
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: COLORS.textMuted,
         textAlign: 'right',
     },
     theirTimestamp: {
-        color: COLORS.textSecondary,
+        color: COLORS.textMuted,
         textAlign: 'left',
     },
     readIndicator: {
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: COLORS.textMuted,
     },
     inputContainer: {
         flexDirection: 'row',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         padding: 12,
-        backgroundColor: COLORS.backgroundSecondary,
-        borderTopWidth: 1,
-        borderTopColor: COLORS.borderColor,
+        paddingBottom: Platform.OS === 'ios' ? 30 : 12,
+    },
+    attachButton: {
+        padding: 8,
+        marginRight: 4,
     },
     input: {
         flex: 1,
-        backgroundColor: COLORS.backgroundPrimary,
-        borderRadius: 20,
+        backgroundColor: COLORS.glassSurface,
+        borderRadius: 24,
         paddingHorizontal: 16,
         paddingVertical: 10,
         fontSize: 16,
         color: COLORS.textPrimary,
         maxHeight: 100,
         marginRight: 8,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
     },
     sendButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: COLORS.primary,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    sendGradient: {
+        width: '100%',
+        height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
     },
     sendButtonDisabled: {
         opacity: 0.5,
-    },
-    sendIcon: {
-        fontSize: 20,
     },
 });
